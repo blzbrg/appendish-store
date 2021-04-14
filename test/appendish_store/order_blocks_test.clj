@@ -1,0 +1,32 @@
+(ns appendish-store.order-blocks-test
+  (:require [clojure.test :as test]
+            [appendish-store.order-blocks :as order-blocks]))
+
+(defn ^:private keys->items
+  [keys]
+  (mapv (fn [key] {::order-blocks/key key}) keys))
+
+(test/deftest unsorted->block-test
+  (test/is (= (order-blocks/unsorted->block (keys->items [1 3 2]))
+         {::order-blocks/min-key 1
+          ::order-blocks/max-key 3
+          ::order-blocks/sorted (keys->items [1 2 3])})))
+
+(test/deftest within-block-test
+  (let [b (order-blocks/unsorted->block (keys->items [1 3 2]))]
+    (test/is (order-blocks/within-block b 1))
+    (test/is (order-blocks/within-block b 2))
+    (test/is (order-blocks/within-block b 3))
+    (test/is (not (order-blocks/within-block b 4)))
+    (test/is (not (order-blocks/within-block b 0)))))
+
+(test/deftest test-overlapping
+  (let [b1 (order-blocks/unsorted->block (keys->items [1 2 3]))
+        b2 (order-blocks/unsorted->block (keys->items [2 3 4]))
+        b3 (order-blocks/unsorted->block (keys->items [3 4 5]))
+        db (order-blocks/unsorted->block (keys->items [7 8 9]))]
+    (test/is (order-blocks/overlapping? b1 b1))
+    (test/is (order-blocks/overlapping? b1 b2))
+    (test/is (order-blocks/overlapping? b1 b3))
+    (test/is (order-blocks/overlapping? b2 b3))
+    (test/is (not (order-blocks/overlapping? b1 db)))))
