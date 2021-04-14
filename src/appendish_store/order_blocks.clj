@@ -69,4 +69,9 @@
           merged (merge-sorted-by item->key overlap-from-low (::sorted high-block))
           ;; new sorted is the merged followed by the unchanged
           new-sorted (append unchanged-low merged)]
-      (sorted->block new-sorted))))
+      ;; avoid looking at sorted at all to compute new min and max. The new min and new max are
+      ;; always one of the old min or old max (respectively).
+      {::min-key (min (::min-key low-block) (::min-key high-block))
+       ::max-key (max (::max-key low-block) (::max-key high-block))
+       ::sorted new-sorted})))
+
