@@ -1,10 +1,7 @@
 (ns appendish-store.order-blocks-test
   (:require [clojure.test :as test]
+            [appendish-store.test-lib :refer [keys->items]]
             [appendish-store.order-blocks :as order-blocks]))
-
-(defn ^:private keys->items
-  [keys]
-  (mapv (fn [key] {::order-blocks/key key}) keys))
 
 (test/deftest unsorted->block-test
   (test/is (= (order-blocks/unsorted->block (keys->items [1 3 2]))
