@@ -7,9 +7,14 @@
   [unsorted item]
   (conj unsorted item)) ; assumption: vector
 
-(defn unsorted-full?
+(defn unsorted-over-thresshold?
   [{unsorted ::unsorted threshhold ::full-threshhold}]
   (> (count unsorted) threshhold))
+
+(defn unsorted-full?
+  "If ::full-pred is present use it, otherwise use unsorted-over-thresshold? as pred."
+  [{pred ::full-pred :as ingress}]
+  ((or pred unsorted-over-thresshold?) ingress))
 
 ;; === Block storage ===
 
@@ -64,10 +69,13 @@
 
 (defn initialize
   ([] (initialize {}))
-  ([{full-threshhold :unsorted-full-threshhold}]
-   (let [sorted-blocks (ref [])]
+  ([{unsorted-full-pred :unsorted-full-pred unsorted-full-thresh :unsorted-full-threshhold]
+   (let [sorted-blocks (ref {::blocks []})
+         ingress-opts (cond-> {::full-threshhold (or unsorted-full-thresh 200)}
+                        unsorted-full-pred (assoc ::full-pred unsorted-full-pred))]
      (add-watch sorted-blocks ::maybe-combine-watcher maybe-combine-watcher)
      ;; non-namespace symbols since this is only to communicate to callers
-     {:ingress (ref {::blocks-ref sorted-blocks ::unsorted []
-                      ::full-threshhold (or full-threshhold 200)})
+     {:ingress (ref (merge {::blocks-ref sorted-blocks
+                            ::unsorted []}
+                           ingress-opts))
       :sorted-blocks sorted-blocks})))
