@@ -8,13 +8,14 @@
   (conj unsorted item)) ; assumption: vector
 
 (defn unsorted-over-thresshold?
-  [{unsorted ::unsorted threshhold ::full-threshhold}]
-  (> (count unsorted) threshhold))
+  [{unsorted ::unsorted threshhold ::full-threshhold} next-item]
+  (> (inc (count unsorted)) threshhold))
 
-(defn unsorted-full?
-  "If ::full-pred is present use it, otherwise use unsorted-over-thresshold? as pred."
-  [{pred ::full-pred :as ingress}]
-  ((or pred unsorted-over-thresshold?) ingress))
+(defn unsorted-would-be-full?
+  "Check if the unsorted would be full after adding `next-item`. If ::full-pred is present use it,
+  otherwise use unsorted-over-thresshold? as pred."
+  [{pred ::full-pred :as ingress} next-item]
+  ((or pred unsorted-over-thresshold?) ingress next-item))
 
 ;; === Block storage ===
 
@@ -34,9 +35,7 @@
   ;; used commute and alter in the same transaction we would run the risk of missing additions to
   ;; the unsorted done by other transactions.
   (dosync
-   ;; Note that unsorted-full? is applied to the unsorted _without_ the new item. This is purely
-   ;; to keep the transaction simpler/lighter.
-   (if (unsorted-full? @ingress)
+   (if (unsorted-would-be-full? @ingress item)
      ;; Make current unsorted plus new item into a new block
      (let [new-unsorted (append-to-unsorted (::unsorted @ingress) item)]
        (alter ingress assoc ::unsorted [])

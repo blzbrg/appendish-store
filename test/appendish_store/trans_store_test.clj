@@ -54,20 +54,29 @@
 
 ;; test only the pred variant, the threshhold variant is implicitly tested in previous tests.
 (test/deftest unsorted-full-pred
-  (let [magic (first (keys->items [42]))
-        has-magic (fn [{uns ::trans-store/unsorted}] (some (partial = magic) uns))
+  (let [[magic arbitrary] (keys->items [42 1])
+        has-magic (fn [{uns ::trans-store/unsorted} next]
+                    (or (= next magic) (some (partial = magic) uns)))
         {in :ingress} (trans-store/initialize {:unsorted-full-pred has-magic})]
-    (trans-store/input in magic)
-    (test/is (trans-store/unsorted-full? @in))))
+    (test/is (not (trans-store/unsorted-would-be-full? @in arbitrary)))
+    (test/is (trans-store/unsorted-would-be-full? @in magic))
+    (trans-store/input in arbitrary)
+    (test/is (not (trans-store/unsorted-would-be-full? @in arbitrary)))
+    (test/is (trans-store/unsorted-would-be-full? @in magic))))
 
 (test/deftest low-threshholds
-  (let [items (keys->items [1 2 3 5 4 6 7 8 9 10])
+  (let [[a b c & rest] (keys->items [1 2 3 5 4 6 7 8 9])
         init-res (trans-store/initialize {:unsorted-full-threshhold 2 :block-merge-thresh 2})
         {in :ingress blocks :sorted-blocks} init-res]
-    (add-all 0 in items)
-    ;; three blocks initially, but they should be merged down to 2
-    (test/is (= 2 (trans-store/block-count @blocks)))
-    ;; number in is number stored
-    (test/is (= (count items) (+ (count (ingress-items in)) (count (blocks-items blocks)))))
-    ;; all the items put in are in the store
-    (test/is (= (set items) (set (concat (ingress-items in) (blocks-items blocks)))))))
+    ;; add first and second items
+    (add-all 0 in [a b])
+    (test/is (= (set [a b]) (ingress-items in)))
+    (test/is (= 0 (trans-store/block-count @blocks)))
+    ;; add another, this should cause the unsorted to fill and move into a block
+    (trans-store/input in c)
+    (test/is (= #{} (ingress-items in)))
+    (test/is (= 1 (trans-store/block-count @blocks)))
+    ;; add rest to get up to three blocks, which will then merge  down to 2
+    (add-all 0 in rest)
+    (test/is (= #{} (ingress-items in)))
+    (test/is (= 2 (trans-store/block-count @blocks)))))
