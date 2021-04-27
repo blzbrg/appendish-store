@@ -9,7 +9,7 @@
 
 (defn blocks-items
   [blocks]
-  (apply concat (map :appendish-store.order-blocks/sorted @blocks)))
+  (apply concat (map :appendish-store.order-blocks/sorted (::trans-store/blocks @blocks))))
 
 (defn add-all
   "Add all items to the given ingress, optionally sleeping after each."
@@ -26,7 +26,7 @@
     (add-all 0 in items)
     ;;(doseq [item items] (trans-store/input in item))
     ;; there is one block
-    (test/is (= 1 (count @blocks)))
+    (test/is (= 1 (trans-store/block-count @blocks)))
     ;; number in is number stored
     (test/is (= (count items) (+ (count (ingress-items in)) (count (blocks-items blocks)))))
     ;; all the items put in are in the store
@@ -46,7 +46,7 @@
     ;; wait for both
     (all-complete fut-a fut-b)
     ;; there is one block
-    (test/is (= 1 (count @blocks)))
+    (test/is (= 1 (trans-store/block-count @blocks)))
     ;; number in is number stored
     (test/is (= (count items) (+ (count (ingress-items in)) (count (blocks-items blocks)))))
     ;; all the items put in are in the store
@@ -59,3 +59,15 @@
         {in :ingress} (trans-store/initialize {:unsorted-full-pred has-magic})]
     (trans-store/input in magic)
     (test/is (trans-store/unsorted-full? @in))))
+
+(test/deftest low-threshholds
+  (let [items (keys->items [1 2 3 5 4 6 7 8 9 10])
+        init-res (trans-store/initialize {:unsorted-full-threshhold 2 :block-merge-thresh 2})
+        {in :ingress blocks :sorted-blocks} init-res]
+    (add-all 0 in items)
+    ;; three blocks initially, but they should be merged down to 2
+    (test/is (= 2 (trans-store/block-count @blocks)))
+    ;; number in is number stored
+    (test/is (= (count items) (+ (count (ingress-items in)) (count (blocks-items blocks)))))
+    ;; all the items put in are in the store
+    (test/is (= (set items) (set (concat (ingress-items in) (blocks-items blocks)))))))
