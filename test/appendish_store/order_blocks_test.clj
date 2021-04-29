@@ -1,6 +1,6 @@
 (ns appendish-store.order-blocks-test
   (:require [clojure.test :as test]
-            [appendish-store.test-lib :refer [keys->items]]
+            [appendish-store.test-lib :refer [keys->items seq=]]
             [appendish-store.order-blocks :as order-blocks]))
 
 (test/deftest unsorted->block-test
@@ -37,12 +37,12 @@
 (test/deftest test-merge-sorted-by
   (let [a (keys->items [1 2 4])
         b (keys->items [3 5])]
-    (test/is (= (order-blocks/merge-sorted-by order-blocks/item->key a b)
-                (keys->items [1 2 3 4 5])))
-    (test/is (= (order-blocks/merge-sorted-by order-blocks/item->key a [])
-                a))
-    (test/is (= (order-blocks/merge-sorted-by order-blocks/item->key b a)
-                (keys->items [1 2 3 4 5])))))
+    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/item->key a b)
+                   (keys->items [1 2 3 4 5])))
+    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/item->key a [])
+                   a))
+    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/item->key b a)
+                   (keys->items [1 2 3 4 5])))))
 
 (test/deftest test-merge-blocks
   (let [b1 (order-blocks/sorted->block (keys->items [1 2 4]))

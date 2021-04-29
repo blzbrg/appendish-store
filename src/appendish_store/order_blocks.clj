@@ -6,7 +6,7 @@
   [sorted]
   {::min-key (item->key (first sorted))
    ::max-key (item->key (last sorted))
-   ::sorted (vec sorted)})
+   ::sorted sorted})
 
 (defn unsorted->block
   [unsorted]
@@ -21,16 +21,11 @@
   (or (within-block block-1 (::min-key block-2))
       (within-block block-1 (::max-key block-2))))
 
-(defn append
-  [first second]
-  ;; Assumption: depends on vector
-  (apply conj first second))
-
 (defn append-block
   [old-block new-block]
   {::min-key (::min-key old-block)
    ::max-key (::max-key new-block)
-   ::sorted (append (::sorted old-block) (::sorted new-block))})
+   ::sorted (concat (::sorted old-block) (::sorted new-block))})
 
 (defn ^:private item-less-than
   [key item]
@@ -39,7 +34,7 @@
 (defn split
   [coll split-key]
   (let [pred (partial item-less-than split-key)]
-    [(vec (take-while pred coll)) (vec (drop-while pred coll))]))
+    [(take-while pred coll) (drop-while pred coll)]))
 
 (defn select-next
   [sort-by coll-a coll-b]
@@ -50,14 +45,16 @@
 
 (defn merge-sorted-by
   [sort-by coll-a coll-b]
-  (loop [new [] ; assumption: vector
+  (loop [new [] ;; use vectors within this function for efficient append
          a coll-a
          b coll-b]
     (cond
-      (empty? a) (append new b)
-      (empty? b) (append new a)
+      ;; concat takes us out of vector land, but this is ok since it is the base case
+      (empty? a) (concat new b)
+      (empty? b) (concat new a)
       :else (let [[n new-a new-b] (select-next sort-by a b)]
-              (recur (conj new n) new-a new-b))))) ; assumption: vector
+              ;; append to vector using conj (will not work for other types)
+              (recur (conj new n) new-a new-b)))))
 
 (defn merge-blocks
   [low-block high-block]
@@ -68,7 +65,7 @@
           ;; merge the minimal overlap with the high block
           merged (merge-sorted-by item->key overlap-from-low (::sorted high-block))
           ;; new sorted is the merged followed by the unchanged
-          new-sorted (append unchanged-low merged)]
+          new-sorted (concat unchanged-low merged)]
       ;; avoid looking at sorted at all to compute new min and max. The new min and new max are
       ;; always one of the old min or old max (respectively).
       {::min-key (min (::min-key low-block) (::min-key high-block))
