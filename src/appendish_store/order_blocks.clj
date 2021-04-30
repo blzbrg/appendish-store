@@ -1,16 +1,21 @@
 (ns appendish-store.order-blocks)
 
-(def item->key ::key)
+(defprotocol KeyedItem
+  "Interface that items must implement to be stored in order-blocks. Using a protocol allows items to
+  call their fields anything they like. In addition to implemeting this protocol items should be
+  immutable."
+  (order-key [self] "Return key used to order items. Must return the same key every time it is
+  called on the same object."))
 
 (defn sorted->block
   [sorted]
-  {::min-key (item->key (first sorted))
-   ::max-key (item->key (last sorted))
+  {::min-key (order-key (first sorted))
+   ::max-key (order-key (last sorted))
    ::sorted sorted})
 
 (defn unsorted->block
   [unsorted]
-  (sorted->block (sort-by item->key unsorted)))
+  (sorted->block (sort-by order-key unsorted)))
 
 (defn within-block
   [block key]
@@ -29,7 +34,7 @@
 
 (defn ^:private item-less-than
   [key item]
-  (< (item->key item) key))
+  (< (order-key item) key))
 
 (defn split
   [coll split-key]
@@ -63,7 +68,7 @@
     (let [; split low to get minimal part which overlaps with high
           [unchanged-low overlap-from-low] (split (::sorted low-block) (::min-key high-block))
           ;; merge the minimal overlap with the high block
-          merged (merge-sorted-by item->key overlap-from-low (::sorted high-block))
+          merged (merge-sorted-by order-key overlap-from-low (::sorted high-block))
           ;; new sorted is the merged followed by the unchanged
           new-sorted (concat unchanged-low merged)]
       ;; avoid looking at sorted at all to compute new min and max. The new min and new max are

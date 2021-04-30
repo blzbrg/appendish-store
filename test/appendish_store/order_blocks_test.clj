@@ -37,11 +37,11 @@
 (test/deftest test-merge-sorted-by
   (let [a (keys->items [1 2 4])
         b (keys->items [3 5])]
-    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/item->key a b)
+    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/order-key a b)
                    (keys->items [1 2 3 4 5])))
-    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/item->key a [])
+    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/order-key a [])
                    a))
-    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/item->key b a)
+    (test/is (seq= (order-blocks/merge-sorted-by order-blocks/order-key b a)
                    (keys->items [1 2 3 4 5])))))
 
 (test/deftest test-merge-blocks

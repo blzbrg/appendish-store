@@ -1,8 +1,13 @@
-(ns appendish-store.test-lib)
+(ns appendish-store.test-lib
+  (:require [appendish-store.order-blocks :as order-blocks]))
+
+(defrecord KeyOnly [k]
+  order-blocks/KeyedItem
+  (order-key [_] k))
 
 (defn keys->items
   [keys]
-  (mapv (fn [key] {:appendish-store.order-blocks/key key}) keys))
+  (map ->KeyOnly keys))
 
 (defn seq=
   [a b]
