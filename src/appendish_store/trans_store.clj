@@ -3,6 +3,8 @@
 
 ;; === Unsorted storage ===
 
+(def empty-unsorted [])
+
 (defn append-to-unsorted
   [unsorted item]
   (conj unsorted item)) ; assumption: vector
@@ -18,6 +20,8 @@
   ((or pred unsorted-over-thresshold?) ingress next-item))
 
 ;; === Block storage ===
+
+(def empty-blocks [])
 
 (defn add-unsorted-as-block
   [sorted-blocks unsorted]
@@ -38,7 +42,7 @@
    (if (unsorted-would-be-full? @ingress item)
      ;; Make current unsorted plus new item into a new block
      (let [new-unsorted (append-to-unsorted (::unsorted @ingress) item)]
-       (alter ingress assoc ::unsorted [])
+       (alter ingress assoc ::unsorted empty-unsorted)
        (alter (::blocks-ref @ingress) update ::blocks add-unsorted-as-block new-unsorted))
      ;; Append to the current unsorted. Commute allows this transaction to still commit even if
      ;; another changed it in the meantime. This should allow many concurrent inputs to run
@@ -79,11 +83,11 @@
   ([{unsorted-full-pred :unsorted-full-pred unsorted-full-thresh :unsorted-full-threshhold
      block-merge-pred :block-merge-pred block-merge-thresh :block-merge-thresh}]
    (let [block-store-ref (ref (cond-> {::merge-threshhold (or block-merge-thresh 2)
-                                       ::blocks []}
+                                       ::blocks empty-blocks}
                                 block-merge-pred (assoc ::merge-pred block-merge-pred)))
          ingress-ref (ref (cond-> {::full-threshhold (or unsorted-full-thresh 200)
                                    ::blocks-ref block-store-ref
-                                   ::unsorted []}
+                                   ::unsorted empty-unsorted}
                             unsorted-full-pred (assoc ::full-pred unsorted-full-pred)))]
      (add-watch block-store-ref ::maybe-combine-watcher maybe-combine-watcher)
      ;; non-namespace symbols since this is only to communicate to callers

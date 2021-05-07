@@ -7,7 +7,7 @@
 
 (defn keys->items
   [keys]
-  (map ->KeyOnly keys))
+  (mapv ->KeyOnly keys))
 
 (defn seq=
   [a b]
