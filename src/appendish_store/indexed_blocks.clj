@@ -55,3 +55,11 @@
   [indexed new-block]
   (into indexed (new-kvs-from-ingest (rseq indexed) new-block)))
 
+(defn blocks-overlapping-range
+  [indexed low-bound high-bound]
+  (->> (map second (rseq indexed)) ; get just the blocks
+       ;; drop blocks whose bottom is above the high bound.
+       (drop-while #(> (compare (::order-blocks/min-key %) high-bound) 0))
+       ;; keep blocks whose high is at or above the low bound
+       (take-while #(>= (compare (::order-blocks/max-key %) low-bound) 0))
+       (reverse)))
