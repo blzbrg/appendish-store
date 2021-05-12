@@ -24,7 +24,9 @@
 (defn overlapping?
   [block-1 block-2]
   (or (within-block block-1 (::min-key block-2))
-      (within-block block-1 (::max-key block-2))))
+      (within-block block-1 (::max-key block-2))
+      (within-block block-2 (::min-key block-1))
+      (within-block block-2 (::max-key block-1))))
 
 (defn append-block
   [old-block new-block]
