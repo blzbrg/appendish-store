@@ -21,12 +21,16 @@
   (let [b1 (order-blocks/unsorted->block (keys->items [1 2 3]))
         b2 (order-blocks/unsorted->block (keys->items [2 3 4]))
         b3 (order-blocks/unsorted->block (keys->items [3 4 5]))
-        db (order-blocks/unsorted->block (keys->items [7 8 9]))]
+        db (order-blocks/unsorted->block (keys->items [7 8 9]))
+        b4 (order-blocks/unsorted->block (keys->items [5 7 8]))
+        b5 (order-blocks/unsorted->block (keys->items [6]))]
     (test/is (order-blocks/overlapping? b1 b1))
     (test/is (order-blocks/overlapping? b1 b2))
     (test/is (order-blocks/overlapping? b1 b3))
     (test/is (order-blocks/overlapping? b2 b3))
-    (test/is (not (order-blocks/overlapping? b1 db)))))
+    (test/is (not (order-blocks/overlapping? b1 db)))
+    (test/is (order-blocks/overlapping? b4 b5))
+    (test/is (order-blocks/overlapping? b5 b4))))
 
 (test/deftest test-append-block
   (let [b1 (order-blocks/sorted->block (keys->items [1 2 3]))
