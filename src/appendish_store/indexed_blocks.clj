@@ -1,6 +1,14 @@
 (ns appendish-store.indexed-blocks
   (:require [appendish-store.order-blocks :as order-blocks]))
 
+(defn create
+  "Create a new indexed store. Can be optionally given a collection of non-overlapping blocks to
+  populate it with. Blocks that overlap must be added with ingest instead."
+  ([] (sorted-map))
+  ([blocks] (reduce #(assoc %1 (::order-blocks/min-key %2) %2)
+                    (create)
+                    blocks)))
+
 (defn wholly-larger-than
   "Return if larger is wholly larger than smaller (and any overlap is only equal elements)."
   [smaller larger]
