@@ -7,6 +7,21 @@
   (order-key [self] "Return key used to order items. Must return the same key every time it is
   called on the same object."))
 
+(defprotocol SortedBlock
+  "Public read-only API for a sorted block (the type dealt with by order-blocks)."
+  (lower-bound [self] "Get the lower bound of the block. This value is the order-key of one of the items
+  in the block.")
+  (upper-bound [self] "Get the upper bound of the block. This value is the order-key of one of the items
+  in the block")
+  (items [self] "Get a vector of the items in the block in order from low to high according to
+  order-key. For example, (lower-bound block) is equal to (order-key (first (items block)))."))
+
+(defrecord RecordSortedBlock [min-key max-key sorted]
+  SortedBlock
+  (lower-bound [_] min-key)
+  (upper-bound [_] max-key)
+  (items [_] sorted))
+
 (defn sorted->block
   [sorted]
   {::min-key (order-key (first sorted))
