@@ -41,7 +41,7 @@
           ;; new-block overlaps current block, merge as much as we can without changing lower-bound of
           ;; current block
           (order-blocks/overlapping? block new-block)
-          (let [[bottom top] (order-blocks/splitv (order-blocks/items new-block)
+          (let [[bottom top] (order-blocks/splitv (vec (order-blocks/items new-block))
                                                   (order-blocks/lower-bound block))
                 top-block (order-blocks/sorted->block top)
                 bottom-block (order-blocks/sorted->block bottom)

@@ -13,7 +13,7 @@
   in the block.")
   (upper-bound [self] "Get the upper bound of the block. This value is the order-key of one of the items
   in the block")
-  (items [self] "Get a vector of the items in the block in order from low to high according to
+  (items [self] "Get a sequable of the items in the block in order from low to high according to
   order-key. For example, (lower-bound block) is equal to (order-key (first (items block)))."))
 
 (defrecord RecordSortedBlock [min-key max-key sorted]
@@ -54,7 +54,8 @@
   [old-block new-block]
   (->RecordSortedBlock (lower-bound old-block)
                        (upper-bound new-block)
-                       (into (items old-block) (items new-block))))
+                       ;; coerce lower items into vec then append newer items
+                       (into (vec (items old-block)) (items new-block))))
 
 (defn splitv
   [coll split-key]
@@ -91,7 +92,7 @@
   (if (not (overlapping? low-block high-block))
     (append-block low-block high-block)
     (let [; split low to get minimal part which overlaps with high
-          [unchanged-low overlap-from-low] (splitv (items low-block) (lower-bound high-block))
+          [unchanged-low overlap-from-low] (splitv (vec (items low-block)) (lower-bound high-block))
           new-sorted (merge-sorted-by order-key unchanged-low overlap-from-low (items high-block))]
       ;; avoid looking at sorted at all to compute new min and max. The new min and new max are
       ;; always one of the old min or old max (respectively).
