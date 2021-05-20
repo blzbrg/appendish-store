@@ -19,7 +19,8 @@
 
 (defn within-block
   [block key]
-  (and (<= key (::max-key block)) (>= key (::min-key block))))
+  (and (<= (compare key (::max-key block)) 0)
+       (>= (compare key (::min-key block)) 0)))
 
 (defn overlapping?
   [block-1 block-2]
@@ -43,7 +44,7 @@
 (defn splitv
   [coll split-key]
   ;; note that zero is truthy, which is important so that we can split at index 0
-  (let [maybe-idx (fn [[idx item]] (when (>= (order-key item) split-key) idx))
+  (let [maybe-idx (fn [[idx item]] (when (>= (compare (order-key item) split-key) 0) idx))
         ;; this is one pass through the vector
         split-idx (some maybe-idx (map vector (range) coll))]
     ;; subvec is allegedly very fast (conceptually it is slicing)
