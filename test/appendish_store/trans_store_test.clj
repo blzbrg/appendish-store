@@ -9,7 +9,7 @@
 
 (defn blocks-items
   [blocks]
-  (apply concat (map :appendish-store.order-blocks/sorted (::trans-store/blocks @blocks))))
+  (apply concat (map appendish-store.order-blocks/items (::trans-store/blocks @blocks))))
 
 (defn add-all
   "Add all items to the given ingress, optionally sleeping after each."

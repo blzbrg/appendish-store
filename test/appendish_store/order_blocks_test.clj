@@ -4,10 +4,11 @@
             [appendish-store.order-blocks :as order-blocks]))
 
 (test/deftest unsorted->block-test
-  (test/is (= (order-blocks/unsorted->block (keys->items [1 3 2]))
-         {::order-blocks/min-key 1
-          ::order-blocks/max-key 3
-          ::order-blocks/sorted (keys->items [1 2 3])})))
+  (let [exp (order-blocks/sorted->block (keys->items [1 2 3]))]
+    (test/is (= (order-blocks/unsorted->block (keys->items [1 3 2]))
+                exp))
+    (test/is (= 1 (order-blocks/lower-bound exp)))
+    (test/is (= 3 (order-blocks/upper-bound exp)))))
 
 (test/deftest within-block-test
   (let [b (order-blocks/unsorted->block (keys->items [1 3 2]))]

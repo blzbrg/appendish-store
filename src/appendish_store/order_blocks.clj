@@ -7,11 +7,26 @@
   (order-key [self] "Return key used to order items. Must return the same key every time it is
   called on the same object."))
 
+(defprotocol SortedBlock
+  "Public read-only API for a sorted block (the type dealt with by order-blocks)."
+  (lower-bound [self] "Get the lower bound of the block. This value is the order-key of one of the items
+  in the block.")
+  (upper-bound [self] "Get the upper bound of the block. This value is the order-key of one of the items
+  in the block")
+  (items [self] "Get a sequable of the items in the block in order from low to high according to
+  order-key. For example, (lower-bound block) is equal to (order-key (first (items block)))."))
+
+(defrecord RecordSortedBlock [min-key max-key sorted]
+  SortedBlock
+  (lower-bound [_] min-key)
+  (upper-bound [_] max-key)
+  (items [_] sorted))
+
 (defn sorted->block
   [sorted]
-  {::min-key (order-key (first sorted))
-   ::max-key (order-key (last sorted))
-   ::sorted (vec sorted)})
+  (->RecordSortedBlock (order-key (first sorted))
+                       (order-key (last sorted))
+                       (vec sorted)))
 
 (defn unsorted->block
   [unsorted]
@@ -19,27 +34,28 @@
 
 (defn within-block
   [block key]
-  (and (<= (compare key (::max-key block)) 0)
-       (>= (compare key (::min-key block)) 0)))
+  (and (<= (compare key (upper-bound block)) 0)
+       (>= (compare key (lower-bound block)) 0)))
 
 (defn overlapping?
   [block-1 block-2]
-  (or (within-block block-1 (::min-key block-2))
-      (within-block block-1 (::max-key block-2))
-      (within-block block-2 (::min-key block-1))
-      (within-block block-2 (::max-key block-1))))
+  (or (within-block block-1 (lower-bound block-2))
+      (within-block block-1 (upper-bound block-2))
+      (within-block block-2 (lower-bound block-1))
+      (within-block block-2 (upper-bound block-1))))
 
 (defn fully-contained?
   "Return if narrow is completely included in broad. Unlike overlapping, this is NOT commutative."
   [narrow broad]
-  (and (within-block broad (::min-key narrow))
-       (within-block broad (::max-key narrow))))
+  (and (within-block broad (lower-bound narrow))
+       (within-block broad (upper-bound narrow))))
 
 (defn append-block
   [old-block new-block]
-  {::min-key (::min-key old-block)
-   ::max-key (::max-key new-block)
-   ::sorted (into (::sorted old-block) (::sorted new-block))})
+  (->RecordSortedBlock (lower-bound old-block)
+                       (upper-bound new-block)
+                       ;; coerce lower items into vec then append newer items
+                       (into (vec (items old-block)) (items new-block))))
 
 (defn splitv
   [coll split-key]
@@ -76,11 +92,11 @@
   (if (not (overlapping? low-block high-block))
     (append-block low-block high-block)
     (let [; split low to get minimal part which overlaps with high
-          [unchanged-low overlap-from-low] (splitv (::sorted low-block) (::min-key high-block))
-          new-sorted (merge-sorted-by order-key unchanged-low overlap-from-low (::sorted high-block))]
+          [unchanged-low overlap-from-low] (splitv (vec (items low-block)) (lower-bound high-block))
+          new-sorted (merge-sorted-by order-key unchanged-low overlap-from-low (items high-block))]
       ;; avoid looking at sorted at all to compute new min and max. The new min and new max are
       ;; always one of the old min or old max (respectively).
-      {::min-key (min (::min-key low-block) (::min-key high-block))
-       ::max-key (max (::max-key low-block) (::max-key high-block))
-       ::sorted new-sorted})))
+      (->RecordSortedBlock (min (lower-bound low-block) (lower-bound high-block))
+                           (max (upper-bound low-block) (upper-bound high-block))
+                           new-sorted))))
 

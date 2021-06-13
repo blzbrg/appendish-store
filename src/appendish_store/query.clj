@@ -10,7 +10,7 @@
         big-seq (apply concat blocks)]
     (->> (indexed-blocks/blocks-overlapping-range indexed low-bound high-bound)
          ;; get only the sorted items from each block
-         (map ::order-blocks/sorted)
+         (map order-blocks/items)
          ;; combine all of the block items
          (flatten)
          ;; drop everything below the low bound
