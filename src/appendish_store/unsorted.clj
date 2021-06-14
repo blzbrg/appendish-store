@@ -1,6 +1,7 @@
 (ns appendish-store.unsorted)
 
 (def empty-storage [])
+(def default-full-thresh 200)
 
 (defn append-to-unsorted
   [unsorted item]
@@ -20,7 +21,7 @@
   "Create a data structure representing the unsorted - including an empty collection for the data
   and configuration/constants."
   [{full-pred :unsorted-full-pred full-thresh :unsorted-full-threshhold blocks-ref :blocks-store-ref}]
-  (cond-> {::full-threshhold (or full-thresh 200)
-                                   ::blocks-ref blocks-ref
-                                   ::unsorted empty-storage}
-    full-pred (assoc ::full-pred full-pred)))
+  (let [base {::blocks-ref blocks-ref ::unsorted empty-storage}]
+    (if full-pred
+      (assoc base ::full-pred full-pred)
+      (assoc base ::full-threshhold (or full-thresh default-full-thresh)))))
