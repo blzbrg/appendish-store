@@ -8,7 +8,7 @@
 (defn items
   "Return seqable of items in unsorted, in any order"
   [unsorted]
-  (::unsorted unsorted))
+  (::storage unsorted))
 
 (defn next-ref
   [unsorted]
@@ -18,19 +18,19 @@
 
 (defn append
   [unsorted item]
-  (update unsorted ::unsorted conj item)) ; assumption: vector
+  (update unsorted ::storage conj item)) ; assumption: vector
 
 (defn drain
   "Return unsorted with all items removed. This is used to preserve config etc. while emptying the
   collection"
   [unsorted]
-  (assoc unsorted ::unsorted empty-storage))
+  (assoc unsorted ::storage empty-storage))
 
 ;; === Internal predicates ===
 
 (defn over-thresshold?
-  [{unsorted ::unsorted threshhold ::full-threshhold} next-item]
-  (> (inc (count unsorted)) threshhold))
+  [{storage ::storage threshhold ::full-threshhold} next-item]
+  (> (inc (count storage)) threshhold))
 
 (defn would-be-full?
   "Check if the unsorted would be full after adding `next-item`. If ::full-pred is present use it,
@@ -44,7 +44,7 @@
   "Create a data structure representing the unsorted - including an empty collection for the data
   and configuration/constants."
   [{full-pred :unsorted-full-pred full-thresh :unsorted-full-threshhold next-ref :next-ref}]
-  (let [base {::next-ref next-ref ::unsorted empty-storage}]
+  (let [base {::next-ref next-ref ::storage empty-storage}]
     (if full-pred
       (assoc base ::full-pred full-pred)
       (assoc base ::full-threshhold (or full-thresh default-full-thresh)))))
