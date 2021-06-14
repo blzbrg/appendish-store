@@ -8,7 +8,7 @@
 
 (defn add-unsorted-as-block
   [sorted-blocks unsorted]
-  (conj sorted-blocks (order-blocks/unsorted->block unsorted)))
+  (conj sorted-blocks (order-blocks/unsorted->block (unsorted/items unsorted))))
 
 (defn block-count
   [{blocks ::blocks}]
@@ -25,9 +25,8 @@
    (if (unsorted/would-be-full? @ingress item)
      ;; Make current unsorted plus new item into a new block
      (let [new-unsorted (unsorted/append @ingress item)]
-       (alter ingress assoc ::unsorted/unsorted unsorted/empty-storage)
-       (alter (::unsorted/blocks-ref @ingress) update ::blocks
-              add-unsorted-as-block (::unsorted/unsorted new-unsorted)))
+       (alter ingress unsorted/drain)
+       (alter (unsorted/next-ref @ingress) update ::blocks add-unsorted-as-block new-unsorted))
      ;; Append to the current unsorted. Commute allows this transaction to still commit even if
      ;; another changed it in the meantime. This should allow many concurrent inputs to run
      ;; more-concurrently.
@@ -68,7 +67,7 @@
    (let [block-store-ref (ref (cond-> {::merge-threshhold (or block-merge-thresh 2)
                                        ::blocks empty-blocks}
                                 block-merge-pred (assoc ::merge-pred block-merge-pred)))
-         ingress-ref (ref (unsorted/init (assoc opts :blocks-store-ref block-store-ref)))]
+         ingress-ref (ref (unsorted/init (assoc opts :next-ref block-store-ref)))]
      (add-watch block-store-ref ::maybe-combine-watcher maybe-combine-watcher)
      ;; non-namespace symbols since this is only to communicate to callers
      {:ingress ingress-ref :sorted-blocks block-store-ref})))

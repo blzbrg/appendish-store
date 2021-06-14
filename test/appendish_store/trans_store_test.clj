@@ -6,7 +6,7 @@
 
 (defn ingress-items
   [ingress]
-  (set (::unsorted/unsorted @ingress)))
+  (set (unsorted/items @ingress)))
 
 (defn blocks-items
   [blocks]
@@ -56,8 +56,8 @@
 ;; test only the pred variant, the threshhold variant is implicitly tested in previous tests.
 (test/deftest unsorted-full-pred
   (let [[magic arbitrary] (keys->items [42 1])
-        has-magic (fn [{uns ::unsorted/unsorted} next]
-                    (or (= next magic) (some (partial = magic) uns)))
+        has-magic (fn [uns next]
+                    (or (= next magic) (some (partial = magic) (unsorted/items uns))))
         {in :ingress} (trans-store/initialize {:unsorted-full-pred has-magic})]
     (test/is (not (unsorted/would-be-full? @in arbitrary)))
     (test/is (unsorted/would-be-full? @in magic))
