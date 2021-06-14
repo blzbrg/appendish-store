@@ -1,23 +1,6 @@
 (ns appendish-store.trans-store
-  (:require [appendish-store.order-blocks :as order-blocks]))
-
-;; === Unsorted storage ===
-
-(def empty-unsorted [])
-
-(defn append-to-unsorted
-  [unsorted item]
-  (conj unsorted item)) ; assumption: vector
-
-(defn unsorted-over-thresshold?
-  [{unsorted ::unsorted threshhold ::full-threshhold} next-item]
-  (> (inc (count unsorted)) threshhold))
-
-(defn unsorted-would-be-full?
-  "Check if the unsorted would be full after adding `next-item`. If ::full-pred is present use it,
-  otherwise use unsorted-over-thresshold? as pred."
-  [{pred ::full-pred :as ingress} next-item]
-  ((or pred unsorted-over-thresshold?) ingress next-item))
+  (:require [appendish-store.order-blocks :as order-blocks]
+            [appendish-store.unsorted :as unsorted]))
 
 ;; === Block storage ===
 
@@ -39,15 +22,15 @@
   ;; used commute and alter in the same transaction we would run the risk of missing additions to
   ;; the unsorted done by other transactions.
   (dosync
-   (if (unsorted-would-be-full? @ingress item)
+   (if (unsorted/would-be-full? @ingress item)
      ;; Make current unsorted plus new item into a new block
-     (let [new-unsorted (append-to-unsorted (::unsorted @ingress) item)]
-       (alter ingress assoc ::unsorted empty-unsorted)
-       (alter (::blocks-ref @ingress) update ::blocks add-unsorted-as-block new-unsorted))
+     (let [new-unsorted (unsorted/append-to-unsorted (::unsorted/unsorted @ingress) item)]
+       (alter ingress assoc ::unsorted/unsorted unsorted/empty-storage)
+       (alter (::unsorted/blocks-ref @ingress) update ::blocks add-unsorted-as-block new-unsorted))
      ;; Append to the current unsorted. Commute allows this transaction to still commit even if
      ;; another changed it in the meantime. This should allow many concurrent inputs to run
      ;; more-concurrently.
-     (commute ingress update ::unsorted append-to-unsorted item))))
+     (commute ingress update ::unsorted/unsorted unsorted/append-to-unsorted item))))
 
 ;; === Block combining ===
 
@@ -80,15 +63,11 @@
 
 (defn initialize
   ([] (initialize {}))
-  ([{unsorted-full-pred :unsorted-full-pred unsorted-full-thresh :unsorted-full-threshhold
-     block-merge-pred :block-merge-pred block-merge-thresh :block-merge-thresh}]
+  ([{block-merge-pred :block-merge-pred block-merge-thresh :block-merge-thresh :as opts}]
    (let [block-store-ref (ref (cond-> {::merge-threshhold (or block-merge-thresh 2)
                                        ::blocks empty-blocks}
                                 block-merge-pred (assoc ::merge-pred block-merge-pred)))
-         ingress-ref (ref (cond-> {::full-threshhold (or unsorted-full-thresh 200)
-                                   ::blocks-ref block-store-ref
-                                   ::unsorted empty-unsorted}
-                            unsorted-full-pred (assoc ::full-pred unsorted-full-pred)))]
+         ingress-ref (ref (unsorted/init (assoc opts :blocks-store-ref block-store-ref)))]
      (add-watch block-store-ref ::maybe-combine-watcher maybe-combine-watcher)
      ;; non-namespace symbols since this is only to communicate to callers
      {:ingress ingress-ref :sorted-blocks block-store-ref})))
