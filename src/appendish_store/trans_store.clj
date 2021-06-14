@@ -24,13 +24,14 @@
   (dosync
    (if (unsorted/would-be-full? @ingress item)
      ;; Make current unsorted plus new item into a new block
-     (let [new-unsorted (unsorted/append-to-unsorted (::unsorted/unsorted @ingress) item)]
+     (let [new-unsorted (unsorted/append @ingress item)]
        (alter ingress assoc ::unsorted/unsorted unsorted/empty-storage)
-       (alter (::unsorted/blocks-ref @ingress) update ::blocks add-unsorted-as-block new-unsorted))
+       (alter (::unsorted/blocks-ref @ingress) update ::blocks
+              add-unsorted-as-block (::unsorted/unsorted new-unsorted)))
      ;; Append to the current unsorted. Commute allows this transaction to still commit even if
      ;; another changed it in the meantime. This should allow many concurrent inputs to run
      ;; more-concurrently.
-     (commute ingress update ::unsorted/unsorted unsorted/append-to-unsorted item))))
+     (commute ingress unsorted/append item))))
 
 ;; === Block combining ===
 

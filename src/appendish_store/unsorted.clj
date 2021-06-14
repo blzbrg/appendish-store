@@ -3,9 +3,9 @@
 (def empty-storage [])
 (def default-full-thresh 200)
 
-(defn append-to-unsorted
+(defn append
   [unsorted item]
-  (conj unsorted item)) ; assumption: vector
+  (update unsorted ::unsorted conj item)) ; assumption: vector
 
 (defn over-thresshold?
   [{unsorted ::unsorted threshhold ::full-threshhold} next-item]
