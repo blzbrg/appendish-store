@@ -1,11 +1,12 @@
 (ns appendish-store.trans_store_test
   (:require [appendish-store.trans-store :as trans-store]
+            [appendish-store.unsorted :as unsorted]
             [appendish-store.test-lib :refer [keys->items]]
             [clojure.test :as test]))
 
 (defn ingress-items
   [ingress]
-  (set (::trans-store/unsorted @ingress)))
+  (set (unsorted/items @ingress)))
 
 (defn blocks-items
   [blocks]
@@ -51,18 +52,6 @@
     (test/is (= (count items) (+ (count (ingress-items in)) (count (blocks-items blocks)))))
     ;; all the items put in are in the store
     (test/is (= (set items) (set (concat (ingress-items in) (blocks-items blocks)))))))
-
-;; test only the pred variant, the threshhold variant is implicitly tested in previous tests.
-(test/deftest unsorted-full-pred
-  (let [[magic arbitrary] (keys->items [42 1])
-        has-magic (fn [{uns ::trans-store/unsorted} next]
-                    (or (= next magic) (some (partial = magic) uns)))
-        {in :ingress} (trans-store/initialize {:unsorted-full-pred has-magic})]
-    (test/is (not (trans-store/unsorted-would-be-full? @in arbitrary)))
-    (test/is (trans-store/unsorted-would-be-full? @in magic))
-    (trans-store/input in arbitrary)
-    (test/is (not (trans-store/unsorted-would-be-full? @in arbitrary)))
-    (test/is (trans-store/unsorted-would-be-full? @in magic))))
 
 (test/deftest low-threshholds
   (let [[a b c & rest] (keys->items [1 2 3 5 4 6 7 8 9])
