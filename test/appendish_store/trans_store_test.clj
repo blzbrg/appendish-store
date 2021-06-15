@@ -53,18 +53,6 @@
     ;; all the items put in are in the store
     (test/is (= (set items) (set (concat (ingress-items in) (blocks-items blocks)))))))
 
-;; test only the pred variant, the threshhold variant is implicitly tested in previous tests.
-(test/deftest unsorted-full-pred
-  (let [[magic arbitrary] (keys->items [42 1])
-        has-magic (fn [uns next]
-                    (or (= next magic) (some (partial = magic) (unsorted/items uns))))
-        {in :ingress} (trans-store/initialize {:unsorted-full-pred has-magic})]
-    (test/is (not (unsorted/would-be-full? @in arbitrary)))
-    (test/is (unsorted/would-be-full? @in magic))
-    (trans-store/input in arbitrary)
-    (test/is (not (unsorted/would-be-full? @in arbitrary)))
-    (test/is (unsorted/would-be-full? @in magic))))
-
 (test/deftest low-threshholds
   (let [[a b c & rest] (keys->items [1 2 3 5 4 6 7 8 9])
         init-res (trans-store/initialize {:unsorted-full-threshhold 2 :block-merge-thresh 2})
